@@ -5,7 +5,6 @@ import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import ClockCycles
 
-
 @cocotb.test()
 async def test_project(dut):
     dut._log.info("Start")
@@ -25,16 +24,36 @@ async def test_project(dut):
 
     dut._log.info("Test project behavior")
 
-    # Set the input values you want to test
-    dut.ui_in.value = 20
-    dut.uio_in.value = 30
-
-    # Wait for one clock cycle to see the output values
+    # Test Case 1:
+    # Combined input: uio_in = 0x2A (00101010), ui_in = 0xF1 (11110001)
+    # Expected: First '1' from the top is at bit position 13.
+    dut.uio_in.value = 0x2A  # upper 8 bits
+    dut.ui_in.value  = 0xF1  # lower 8 bits
     await ClockCycles(dut.clk, 1)
+    assert int(dut.uo_out.value) == 13, f"Test Case 1 failed: Expected 13, got {int(dut.uo_out.value)}"
 
-    # The following assersion is just an example of how to check the output values.
-    # Change it to match the actual expected output of your module:
-    assert dut.uo_out.value == 50
+    # Test Case 2:
+    # Combined input: 0x0001 (uio_in = 0x00, ui_in = 0x01)
+    # Expected: First '1' is at bit position 0.
+    dut.uio_in.value = 0x00
+    dut.ui_in.value  = 0x01
+    await ClockCycles(dut.clk, 1)
+    assert int(dut.uo_out.value) == 0, f"Test Case 2 failed: Expected 0, got {int(dut.uo_out.value)}"
 
-    # Keep testing the module by changing the input values, waiting for
-    # one or more clock cycles, and asserting the expected output values.
+    # Test Case 3:
+    # Combined input: 0x0000 (all zeros)
+    # Expected: Special case output 0xF0.
+    dut.uio_in.value = 0x00
+    dut.ui_in.value  = 0x00
+    await ClockCycles(dut.clk, 1)
+    assert int(dut.uo_out.value) == 0xF0, f"Test Case 3 failed: Expected 0xF0, got {int(dut.uo_out.value)}"
+
+    # Test Case 4:
+    # Combined input: 0x8000 (uio_in = 0x80, ui_in = 0x00)
+    # Expected: First '1' is at bit position 15.
+    dut.uio_in.value = 0x80  # 10000000
+    dut.ui_in.value  = 0x00  # 00000000
+    await ClockCycles(dut.clk, 1)
+    assert int(dut.uo_out.value) == 15, f"Test Case 4 failed: Expected 15, got {int(dut.uo_out.value)}"
+
+    dut._log.info("All tests passed!")
